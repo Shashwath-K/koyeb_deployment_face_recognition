@@ -1,9 +1,9 @@
 flask==2.3.3
-opencv-python-headless==4.8.1.78 
+opencv-python==4.8.1.78
 numpy<2.0.0
-torch==2.1.0 
-torchvision==0.16.0 
+torch
+torchvision==0.15.2
 facenet-pytorch==2.5.3
-pillow==10.1.0
+pillow
 psycopg2-binary==2.9.7
-gdown==4.7.1
+gdown
