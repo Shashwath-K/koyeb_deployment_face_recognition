@@ -1,34 +1,109 @@
-name: face-attendance-api
+# Koyeb deployment configuration for PyTorch application
+# Note: Requires Large instance type due to PyTorch size (~3GB)
+version: "1"
+name: face-attendance-pytorch
 services:
   - name: api
+    type: web
+    
+    # Port configuration
     ports:
-      - port: 5000
+      - port: 8000
         http:
           path: /api/health
           grace_period: 30s
+    
+    # Region (choose closest to your users)
     regions:
-      - fra  # Frankfurt
+      - fra  # Frankfurt, Europe
+      - iad  # Washington DC, USA (optional)
+    
+    # Instance configuration - MUST BE LARGE OR HIGHER
     instance:
-      type: nano  # Free tier
+      type: large  # Minimum required for PyTorch (8GB disk)
       count: 1
+      disk:
+        size_gb: 10  # Request 10GB to be safe
+    
+    # Auto-scaling (start with 1, scale if needed)
     scaling:
       min: 1
-      max: 1
+      max: 2
+      auto:
+        cpu:
+          target: 70
+          stabilization_window: "60s"
+        memory:
+          target: 70
+          stabilization_window: "60s"
+    
+    # Health checks
     health_checks:
       http:
         path: /api/health
-        port: 5000
-        interval: 30
-        timeout: 5
+        port: 8000
+        interval: 45
+        timeout: 10
         unhealthy_threshold: 3
         healthy_threshold: 2
+        initial_delay: 60  # Give PyTorch time to load
+    
+    # Environment variables
     env:
       - name: PYTHONUNBUFFERED
         value: "1"
       - name: PORT
-        value: "5000"
+        value: "8000"
+      - name: PYTHONDONTWRITEBYTECODE
+        value: "1"
+      - name: PYTORCH_CUDA_ALLOC_CONF
+        value: "max_split_size_mb:128"
+      - name: OMP_NUM_THREADS
+        value: "2"  # Limit CPU threads for PyTorch
+    
+    # Docker configuration
     docker:
-      image: koyeb/face-attendance:latest
+      image: your-dockerhub-username/face-attendance-pytorch:latest
+      # You can also build from GitHub:
+      # build:
+      #   repository: your-github-username/your-repo
+      #   branch: main
+      args:
+        - BUILDKIT_INLINE_CACHE=1
+    
+    # Routes
     routes:
       - path: /
-        port: 5000
+        port: 8000
+    
+    # Probes for better reliability
+    liveness_probe:
+      http:
+        path: /api/health
+        port: 8000
+      initial_delay: 90
+      period: 45
+    
+    readiness_probe:
+      http:
+        path: /api/health
+        port: 8000
+      initial_delay: 120
+      period: 30
+    
+    # Resource limits (adjust based on your needs)
+    resources:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+    
+    # Deploy strategy
+    deploy:
+      strategy: rolling_update
+      max_surge: 1
+      max_unavailable: 0
+      health_check:
+        grace_period: 180  # 3 minutes for PyTorch to initialize
