@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Face Recognition System{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 60px 20px;">
+    <div style="font-size: 5em; margin-bottom: 20px;">📸</div>
+    <h2 style="color: var(--dark); margin-bottom: 15px;">Register New User</h2>
+    
+    <div style="max-width: 600px; margin: 0 auto 40px auto; padding: 30px; background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1)); border-radius: 15px; border-left: 4px solid var(--primary);">
+        <p style="font-size: 1.1em; color: var(--dark); margin-bottom: 20px; line-height: 1.6;">
+            Please go to the Camera page to capture your face images first.
+        </p>
+        <p style="font-size: 1.1em; color: var(--gray); line-height: 1.6;">
+            After capturing 3 face images, you can complete your registration here.
+        </p>
+    </div>
+    
+    <a href="{{ url_for('camera_page') }}" style="display: inline-block; padding: 16px 40px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; text-decoration: none; border-radius: 10px; font-size: 1.2em; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(102,126,234,0.3);">
+        📸 Go to Camera Page
+    </a>
+    
+    <div style="margin-top: 40px; color: var(--gray); font-size: 0.95em;">
+        <p>Already have face images captured? <a href="{{ url_for('register_user') }}" style="color: var(--primary); font-weight: 500;">Complete registration here</a></p>
+    </div>
+</div>
+{% endblock %}

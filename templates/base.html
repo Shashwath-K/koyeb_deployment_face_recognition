@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Secure face recognition and authentication system">
+    <meta name="theme-color" content="#f97316">
+    
+    <title>{% block title %}Face Recognition System{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>FR</text></svg>">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    
+    {% block styles %}{% endblock %}
+    
+    <style>
+        :root {
+            --orange: #f97316;
+            --blue: #3b82f6;
+            --grey-700: #374151;
+            --grey-100: #f3f4f6;
+            --white: #ffffff;
+            --dark: #1f2937;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, var(--grey-100) 0%, #e5e7eb 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--grey-700);
+        }
+        
+        /* Header with 8vh max height - IMPROVED VERSION */
+        .header {
+            background: var(--white);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: 8vh;
+            max-height: 80px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 30px;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+            padding: 0;
+        }
+        
+        .logo {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--orange);
+            text-decoration: none;
+            letter-spacing: 0.5px;
+            padding: 5px 0;
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
+        
+        .logo:hover {
+            color: var(--blue);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            height: 100%;
+        }
+        
+        .nav-links a {
+            color: var(--grey-700);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 0 20px;
+            border-radius: 6px;
+            font-size: 0.95em;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        
+        .nav-links a:hover {
+            color: var(--orange);
+            background-color: var(--grey-100);
+        }
+        
+        .nav-links a.active {
+            color: var(--orange);
+            background-color: transparent;
+            font-weight: 600;
+        }
+        
+        .nav-links a.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20px;
+            right: 20px;
+            height: 3px;
+            background-color: var(--orange);
+            border-radius: 2px 2px 0 0;
+        }
+        
+        main.container {
+            flex: 1;
+            background: var(--white);
+            border-radius: 12px;
+            margin: 30px auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            padding: 40px;
+            max-width: 1200px;
+            width: calc(100% - 60px);
+        }
+        
+        .footer {
+            background: var(--grey-700);
+            color: var(--white);
+            text-align: center;
+            padding: 30px 20px;
+            margin-top: auto;
+        }
+        
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer p {
+            margin: 8px 0;
+            opacity: 0.9;
+        }
+        
+        .footer p:first-child {
+            font-weight: 600;
+            color: var(--white);
+            font-size: 1.1em;
+        }
+        
+        .footer p:last-child {
+            opacity: 0.7;
+            font-size: 0.9em;
+            margin-top: 15px;
+        }
+        
+        /* Responsive Design - Tablet */
+        @media (max-width: 1024px) {
+            .header-container {
+                padding: 0 20px;
+            }
+            
+            .nav-links a {
+                padding: 0 16px;
+                font-size: 0.92em;
+            }
+            
+            main.container {
+                padding: 30px;
+                margin: 25px auto;
+                width: calc(100% - 40px);
+            }
+            
+            .footer {
+                padding: 25px 15px;
+            }
+        }
+        
+        /* Responsive Design - Mobile */
+        @media (max-width: 768px) {
+            .header {
+                height: auto;
+                min-height: 70px;
+                padding: 10px 0;
+            }
+            
+            .header-container {
+                padding: 0 15px;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                height: auto;
+            }
+            
+            .logo {
+                height: auto;
+                padding: 5px 0;
+                font-size: 1.4em;
+            }
+            
+            .nav-links {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+                gap: 8px;
+                height: auto;
+            }
+            
+            .nav-links a {
+                padding: 10px 18px;
+                font-size: 0.9em;
+                height: auto;
+                border-radius: 8px;
+                margin: 2px;
+            }
+            
+            .nav-links a.active {
+                background-color: var(--orange);
+                color: var(--white);
+            }
+            
+            .nav-links a.active::after {
+                display: none;
+            }
+            
+            main.container {
+                padding: 25px 20px;
+                margin: 20px auto;
+                width: calc(100% - 30px);
+            }
+            
+            .footer {
+                padding: 20px 15px;
+            }
+        }
+        
+        /* Responsive Design - Small Mobile */
+        @media (max-width: 480px) {
+            .header-container {
+                padding: 0 12px;
+            }
+            
+            .logo {
+                font-size: 1.3em;
+            }
+            
+            .nav-links {
+                gap: 6px;
+            }
+            
+            .nav-links a {
+                padding: 8px 14px;
+                font-size: 0.85em;
+                margin: 1px;
+            }
+            
+            main.container {
+                padding: 20px 15px;
+                margin: 15px auto;
+                width: calc(100% - 20px);
+            }
+            
+            .footer {
+                padding: 18px 12px;
+            }
+            
+            .footer p:first-child {
+                font-size: 1em;
+            }
+        }
+        
+        /* Very small screens */
+        @media (max-width: 360px) {
+            .nav-links a {
+                padding: 7px 12px;
+                font-size: 0.82em;
+            }
+            
+            .logo {
+                font-size: 1.2em;
+            }
+            
+            main.container {
+                padding: 18px 12px;
+            }
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--orange);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .mt-1 { margin-top: 10px; }
+        .mt-2 { margin-top: 20px; }
+        .mt-3 { margin-top: 30px; }
+        .mb-1 { margin-bottom: 10px; }
+        .mb-2 { margin-bottom: 20px; }
+        .mb-3 { margin-bottom: 30px; }
+        .px-1 { padding-left: 10px; padding-right: 10px; }
+        .px-2 { padding-left: 20px; padding-right: 20px; }
+        .px-3 { padding-left: 30px; padding-right: 30px; }
+        .py-1 { padding-top: 10px; padding-bottom: 10px; }
+        .py-2 { padding-top: 20px; padding-bottom: 20px; }
+        .py-3 { padding-top: 30px; padding-bottom: 30px; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <div class="header-content">
+                <a href="{{ url_for('index') }}" class="logo">
+                    Face Recognition System
+                </a>
+                <nav class="nav-links">
+                    <a href="{{ url_for('index') }}" id="nav-home">Home</a>
+                    <a href="{{ url_for('register_page') }}" id="nav-register">Register</a>
+                    <a href="{{ url_for('login_page') }}" id="nav-login">Login</a>
+                    <a href="{{ url_for('dashboard') }}" id="nav-dashboard">Dashboard</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <p>Face Recognition System v2.0</p>
+            <p>Powered by Flask, PostgreSQL & MobileFaceNet</p>
+            <p>© 2026 All rights reserved</p>
+        </div>
+    </footer>
+
+    <!-- Core JavaScript -->
+    <script>
+        // Active navigation highlighting
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-links a');
+            
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        });
+        
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(function(registration) {
+                        console.log('Service Worker registered:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+        
+        // Utility functions for all pages
+        window.showMessage = function(message, type = 'info') {
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                warning: '#f59e0b',
+                info: '#3b82f6'
+            };
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = message;
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 90px;
+                right: 20px;
+                background: ${colors[type] || colors.info};
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                z-index: 1000;
+                font-weight: 500;
+                max-width: 400px;
+                animation: slideIn 0.3s ease-out;
+            `;
+            
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.style.animation = 'slideOut 0.3s ease-out';
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 3000);
+        };
+        
+        // Loading overlay utility
+        window.showLoading = function(message = 'Loading...') {
+            const overlay = document.createElement('div');
+            overlay.id = 'loadingOverlay';
+            overlay.innerHTML = `
+                <div style="text-align: center;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 15px; font-weight: 500;">${message}</p>
+                </div>
+            `;
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                color: white;
+            `;
+            document.body.appendChild(overlay);
+        };
+        
+        window.hideLoading = function() {
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) overlay.remove();
+        };
+    </script>
+    
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
+    
+    <!-- Page-specific scripts -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

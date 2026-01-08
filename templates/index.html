@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Face Recognition System{% endblock %}
+
+{% block content %}
+<div class="hero-section" style="text-align: center; padding: 60px 20px;">
+    <h1 style="font-size: 3em; margin-bottom: 20px; color: var(--primary);">
+        🤖 Face Recognition System
+    </h1>
+    <p style="font-size: 1.2em; color: var(--gray); margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto;">
+        Secure, fast, and reliable facial authentication system powered by MobileFaceNet.
+    </p>
+    
+    <div class="stats" style="display: flex; justify-content: center; gap: 30px; margin-bottom: 50px; flex-wrap: wrap;">
+        <div class="stat-card" style="background: white; padding: 30px; border-radius: 15px; min-width: 200px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <div style="font-size: 3em; margin-bottom: 10px;">👥</div>
+            <div style="font-size: 2.5em; font-weight: bold; color: var(--primary);" id="totalUsers">0</div>
+            <div style="color: var(--gray);">Registered Users</div>
+        </div>
+        
+        <div class="stat-card" style="background: white; padding: 30px; border-radius: 15px; min-width: 200px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <div style="font-size: 3em; margin-bottom: 10px;">📊</div>
+            <div style="font-size: 2.5em; font-weight: bold; color: var(--secondary);" id="totalEmbeddings">0</div>
+            <div style="color: var(--gray);">Face Embeddings</div>
+        </div>
+        
+        <div class="stat-card" style="background: white; padding: 30px; border-radius: 15px; min-width: 200px; box-shadow: 0 5px 15px rgba(0,0,0,0.1);">
+            <div style="font-size: 3em; margin-bottom: 10px;">🎯</div>
+            <div style="font-size: 2.5em; font-weight: bold; color: var(--warning);" id="threshold">0.60</div>
+            <div style="color: var(--gray);">Security Threshold</div>
+        </div>
+    </div>
+    
+    <div class="actions" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+        <button onclick="window.location.href='/register'" class="btn btn-primary" style="font-size: 1.1em; padding: 15px 30px;">
+            👤 Register New User
+        </button>
+        <button onclick="window.location.href='/login'" class="btn btn-success" style="font-size: 1.1em; padding: 15px 30px;">
+            🔐 Face Login
+        </button>
+        <button onclick="window.location.href='/dashboard'" class="btn btn-info" style="font-size: 1.1em; padding: 15px 30px;">
+            📊 Dashboard
+        </button>
+    </div>
+    
+    <div style="margin-top: 60px; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); max-width: 800px; margin-left: auto; margin-right: auto;">
+        <h2 style="margin-bottom: 20px; color: var(--dark);">How It Works</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px;">
+            <div>
+                <div style="font-size: 2.5em; margin-bottom: 15px;">1️⃣</div>
+                <h3 style="margin-bottom: 10px; color: var(--primary);">Register</h3>
+                <p style="color: var(--gray);">Capture 3 face images to create your biometric profile with unique ID.</p>
+            </div>
+            <div>
+                <div style="font-size: 2.5em; margin-bottom: 15px;">2️⃣</div>
+                <h3 style="margin-bottom: 10px; color: var(--primary);">Login</h3>
+                <p style="color: var(--gray);">Simply look at the camera for instant face-based authentication.</p>
+            </div>
+            <div>
+                <div style="font-size: 2.5em; margin-bottom: 15px;">3️⃣</div>
+                <h3 style="margin-bottom: 10px; color: var(--primary);">Secure</h3>
+                <p style="color: var(--gray);">512-D embeddings stored securely in PostgreSQL database.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-radius: 10px; max-width: 600px; margin-left: auto; margin-right: auto;">
+        <h3 style="margin-bottom: 15px; color: var(--dark);">System Status</h3>
+        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+            <div id="statusIndicator" style="width: 12px; height: 12px; border-radius: 50%; background: #28a745;"></div>
+            <span id="statusText" style="color: var(--gray);">System Ready</span>
+        </div>
+        <div style="margin-top: 10px; font-size: 0.9em; color: var(--gray);">
+            <span id="avgEmbeddings">Loading...</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Load stats from API
+    async function loadStats() {
+        try {
+            const response = await fetch('/api/stats');
+            
+            if (!response.ok) {
+                throw new Error('Failed to fetch stats');
+            }
+            
+            const stats = await response.json();
+            
+            // Update main stats
+            document.getElementById('totalUsers').textContent = stats.total_users || 0;
+            document.getElementById('totalEmbeddings').textContent = stats.total_embeddings || 0;
+            document.getElementById('threshold').textContent = (stats.threshold || 0.6).toFixed(2);
+            
+            // Update system status
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            
+            if (stats.status === 'running') {
+                statusIndicator.style.background = '#28a745';
+                statusText.textContent = 'System Operational';
+            } else {
+                statusIndicator.style.background = '#ffc107';
+                statusText.textContent = 'System Starting...';
+            }
+            
+            // Calculate and show average embeddings per user
+            const avgEmbed = stats.total_users > 0 
+                ? (stats.total_embeddings / stats.total_users).toFixed(1) 
+                : 0;
+            document.getElementById('avgEmbeddings').textContent = 
+                `Average ${avgEmbed} embeddings per user`;
+            
+        } catch (error) {
+            console.error('Error loading stats:', error);
+            
+            // Show error state
+            document.getElementById('statusIndicator').style.background = '#dc3545';
+            document.getElementById('statusText').textContent = 'Connection Error';
+            document.getElementById('avgEmbeddings').textContent = 'Unable to fetch system statistics';
+        }
+    }
+    
+    // Load stats on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        loadStats();
+        
+        // Auto-refresh stats every 30 seconds
+        setInterval(loadStats, 30000);
+    });
+    
+    // Register Service Worker for PWA support
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+                console.log('✅ Service Worker registered:', registration.scope);
+            })
+            .catch(error => {
+                console.log('❌ Service Worker registration failed:', error);
+            });
+    }
+</script>
+
+<style>
+    .stat-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+    }
+    
+    .btn {
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .btn-success {
+        background: var(--success);
+        color: white;
+    }
+    
+    .btn-info {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+    
+    #statusIndicator {
+        animation: pulse 2s ease-in-out infinite;
+    }
+</style>
+{% endblock %}

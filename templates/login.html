@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Face Recognition System{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 60px 20px; max-width: 800px; margin: 0 auto;">
+    <!-- Login Header -->
+    <div style="margin-bottom: 40px;">
+        <div style="font-size: 4em; color: var(--primary); margin-bottom: 20px;">🔐</div>
+        <h2 style="color: var(--dark); margin-bottom: 10px;">Face Login</h2>
+        <p style="color: var(--gray); font-size: 1.1em;">Authenticate using facial recognition technology</p>
+    </div>
+
+    <!-- Login Options -->
+    <div style="display: flex; flex-direction: column; gap: 30px; align-items: center;">
+        <!-- Face Login Card -->
+        <div style="width: 100%; max-width: 500px; padding: 30px; background: var(--white); border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); border-left: 5px solid var(--primary);">
+            <div style="font-size: 2.5em; color: var(--primary); margin-bottom: 20px;">📷</div>
+            <h3 style="color: var(--dark); margin-bottom: 15px;">Face Authentication</h3>
+            <p style="color: var(--gray); margin-bottom: 25px; line-height: 1.6;">
+                Use your face for secure and quick authentication. Simply look at the camera and capture your face.
+            </p>
+            <a href="{{ url_for('camera_page') }}" style="display: inline-block; padding: 14px 35px; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: var(--white); text-decoration: none; border-radius: 10px; font-size: 1.1em; font-weight: 600; transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(102,126,234,0.3);">
+                Go to Camera for Face Login
+            </a>
+        </div>
+
+        <!-- Alternative Login Methods -->
+        <div style="width: 100%; max-width: 500px; padding: 25px; background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(59,130,246,0.05)); border-radius: 15px; border: 2px dashed var(--info);">
+            <h4 style="color: var(--dark); margin-bottom: 15px;">Alternative Login Methods</h4>
+            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-top: 20px;">
+                <a href="#" style="padding: 12px 25px; background: var(--white); color: var(--dark); text-decoration: none; border-radius: 8px; font-weight: 500; border: 2px solid var(--gray); transition: all 0.3s ease;">
+                    📧 Email Login
+                </a>
+                <a href="#" style="padding: 12px 25px; background: var(--white); color: var(--dark); text-decoration: none; border-radius: 8px; font-weight: 500; border: 2px solid var(--gray); transition: all 0.3s ease;">
+                    👤 Username Login
+                </a>
+            </div>
+        </div>
+
+        <!-- Information Section -->
+        <div style="width: 100%; max-width: 500px; padding: 25px; background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05)); border-radius: 15px; border-left: 4px solid var(--warning);">
+            <h4 style="color: var(--dark); margin-bottom: 15px;">💡 Tips for Successful Face Login</h4>
+            <ul style="text-align: left; color: var(--gray); line-height: 1.8; padding-left: 20px;">
+                <li>Ensure good lighting on your face</li>
+                <li>Look directly at the camera</li>
+                <li>Remove glasses if they cause glare</li>
+                <li>Use the same facial expression as during registration</li>
+                <li>Make sure your entire face is visible</li>
+            </ul>
+        </div>
+
+        <!-- Registration Link -->
+        <div style="margin-top: 20px; padding: 20px; color: var(--gray);">
+            <p>Don't have an account? <a href="{{ url_for('register_page') }}" style="color: var(--primary); font-weight: 600;">Register here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effects to buttons
+    const buttons = document.querySelectorAll('a[href]');
+    buttons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            if (this.style.background.includes('linear-gradient')) {
+                this.style.transform = 'translateY(-3px)';
+                this.style.boxShadow = '0 8px 25px rgba(102,126,234,0.4)';
+            } else {
+                this.style.background = 'var(--light)';
+            }
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            if (this.style.background.includes('linear-gradient')) {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '0 5px 15px rgba(102,126,234,0.3)';
+            } else {
+                this.style.background = 'var(--white)';
+            }
+        });
+    });
+
+    // Show welcome message
+    setTimeout(() => {
+        showMessage('Welcome to Face Recognition Login! Please use the Camera page for authentication.', 'info');
+    }, 1000);
+});
+</script>
+{% endblock %}

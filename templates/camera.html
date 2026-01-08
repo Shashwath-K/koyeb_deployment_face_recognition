@@ -1,0 +1,481 @@
+{% extends "base.html" %}
+
+{% block title %}Camera - Face Recognition System{% endblock %}
+
+{% block styles %}
+<style>
+    /* Color variables based on your scheme */
+    :root {
+        --orange: #f97316;         /* Orange */
+        --blue: #3b82f6;           /* Blue */
+        --grey-700: #374151;       /* Grey 700 */
+        --white: #ffffff;          /* White */
+        --light-grey: #f3f4f6;     /* Light grey for backgrounds */
+        --dark-grey: #1f2937;      /* Dark grey for text */
+    }
+    
+    .camera-container {
+        position: relative;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    #camera-preview {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        transform: scaleX(-1); /* Mirror effect */
+        background: var(--grey-700);
+        border: 3px solid var(--blue);
+    }
+    
+    .camera-controls {
+        margin: 25px 0;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .mode-selector {
+        display: flex;
+        gap: 15px;
+        margin: 25px 0;
+        justify-content: center;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    #status-message {
+        padding: 18px;
+        margin: 25px 0;
+        border-left: 4px solid var(--orange);
+        background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(249, 115, 22, 0.05));
+        border-radius: 8px;
+        min-height: 20px;
+        font-weight: 500;
+        color: var(--grey-700);
+    }
+    
+    .progress-container {
+        display: none; /* Hidden by default */
+        margin: 25px 0;
+        align-items: center;
+        gap: 20px;
+    }
+    
+    .progress-bar {
+        flex: 1;
+        height: 20px;
+        background: var(--light-grey);
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--grey-700);
+    }
+    
+    #progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--orange), #ea580c);
+        transition: width 0.3s ease;
+        width: 0%;
+    }
+    
+    #progress-text {
+        min-width: 50px;
+        font-weight: bold;
+        color: var(--grey-700);
+        font-size: 1.1em;
+    }
+    
+    #results-display {
+        margin: 25px 0;
+        padding: 25px;
+        border-radius: 10px;
+        display: none;
+        border: 2px solid;
+    }
+    
+    .success-result {
+        background: linear-gradient(135deg, rgba(249, 115, 22, 0.1), rgba(249, 115, 22, 0.05));
+        border-color: var(--orange);
+        color: var(--grey-700);
+    }
+    
+    .error-result {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+        border-color: #dc2626;
+        color: var(--grey-700);
+    }
+    
+    .info-result {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+        border-color: var(--blue);
+        color: var(--grey-700);
+    }
+    
+    #capture-preview {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(55, 65, 81, 0.95); /* Grey 700 with transparency */
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(10px);
+    }
+    
+    .preview-content {
+        background: var(--white);
+        padding: 25px;
+        border-radius: 12px;
+        max-width: 600px;
+        width: 90%;
+        border: 3px solid var(--orange);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    #camera-error {
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
+        border: 2px solid #dc2626;
+        border-radius: 12px;
+        margin: 25px 0;
+        text-align: center;
+    }
+    
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, var(--orange), #ea580c);
+        color: var(--white);
+        border: 2px solid var(--orange);
+    }
+    
+    .btn-secondary {
+        background: var(--white);
+        color: var(--grey-700);
+        border: 2px solid var(--blue);
+    }
+    
+    .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #ea580c, #c2410c);
+        box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+    }
+    
+    .btn-secondary:hover {
+        background: var(--blue);
+        color: var(--white);
+    }
+    
+    /* Face overlay styling */
+    .face-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+    }
+    
+    .face-grid {
+        width: 70%;
+        height: 70%;
+        border: 3px dashed rgba(255, 255, 255, 0.5);
+        border-radius: 12px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .face-grid-inner {
+        width: 80%;
+        height: 80%;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+    }
+    
+    /* Form elements */
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--grey-700);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid var(--blue);
+        border-radius: 8px;
+        font-size: 16px;
+        background: var(--white);
+        color: var(--grey-700);
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--orange);
+        box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
+    }
+    
+    /* Registration instruction */
+    #registration-instruction {
+        display: none;
+        margin: 25px 0;
+        padding: 20px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
+        border-left: 4px solid var(--blue);
+        border-radius: 10px;
+    }
+    
+    /* Debug section */
+    .debug-section {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 2px dashed var(--blue);
+    }
+    
+    /* Typography */
+    h2, h3, h4 {
+        color: var(--grey-700);
+        margin-bottom: 15px;
+    }
+    
+    h2 {
+        border-bottom: 3px solid var(--orange);
+        padding-bottom: 10px;
+    }
+    
+    p {
+        color: var(--grey-700);
+        line-height: 1.6;
+    }
+    
+    a {
+        color: var(--blue);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    a:hover {
+        color: var(--orange);
+        text-decoration: underline;
+    }
+    
+    /* Camera container styling */
+    .camera-video-container {
+        position: relative;
+        background: var(--grey-700);
+        border-radius: 12px;
+        overflow: hidden;
+        margin: 20px 0;
+        border: 3px solid var(--blue);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="camera-container">
+    <h2>📷 Camera Interface</h2>
+    <p style="color: var(--grey-700); margin-bottom: 25px;">Use this page to capture faces for registration or login authentication</p>
+    
+    <!-- Camera Selection -->
+    <div class="form-group">
+        <label for="camera-select">Select Camera:</label>
+        <select id="camera-select" class="form-control">
+            <option value="">Loading cameras...</option>
+        </select>
+    </div>
+    
+    <!-- Camera Error Display -->
+    <div id="camera-error"></div>
+    
+    <!-- Camera Preview -->
+    <div class="camera-video-container">
+        <video id="camera-preview" autoplay playsinline></video>
+        <div class="face-overlay">
+            <div class="face-grid">
+                <div class="face-grid-inner"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Camera Controls -->
+    <div class="camera-controls">
+        <button id="capture-btn" class="btn btn-primary">
+            <span style="font-size: 1.2em;">📸</span> Capture Image
+        </button>
+        <button id="switch-camera" class="btn btn-secondary">
+            <span style="font-size: 1.2em;">🔄</span> Switch Camera
+        </button>
+        <button id="test-camera" class="btn btn-secondary">
+            <span style="font-size: 1.2em;">🧪</span> Test Camera
+        </button>
+    </div>
+    
+    <!-- Mode Selection -->
+    <div class="mode-selector">
+        <label style="font-weight: 600; color: var(--grey-700);">Select Mode:</label>
+        <button id="mode-register" class="btn mode-btn btn-primary" data-mode="register">
+            <span style="font-size: 1.2em;">👤</span> Register (Capture 3 Faces)
+        </button>
+        <button id="mode-login" class="btn mode-btn btn-secondary" data-mode="login">
+            <span style="font-size: 1.2em;">🔐</span> Login (Face Authentication)
+        </button>
+        <button id="mode-test" class="btn mode-btn btn-secondary" data-mode="test">
+            <span style="font-size: 1.2em;">🔄</span> Test Camera
+        </button>
+    </div>
+    
+    <!-- Progress Display -->
+    <div class="progress-container">
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+        <span id="progress-text">0/3</span>
+    </div>
+    
+    <!-- Registration Instruction -->
+    <div id="registration-instruction">
+        <h3 style="color: var(--blue); margin-top: 0;">✅ 3 Faces Successfully Captured!</h3>
+        <p style="color: var(--grey-700); margin-bottom: 15px;">Go to the <a href="{{ url_for('register_page') }}" style="font-weight: bold; color: var(--blue);">Register page</a> to complete your registration with your name and email.</p>
+        <a href="{{ url_for('register_page') }}" class="btn btn-primary" style="margin-top: 10px;">
+            <span style="font-size: 1.2em;">📝</span> Go to Register Page
+        </a>
+    </div>
+    
+    <!-- Status Message -->
+    <div id="status-message">
+        <span style="font-size: 1.1em;">🎯 Ready to capture - Position your face in the center</span>
+    </div>
+    
+    <!-- Results Display -->
+    <div id="results-display"></div>
+    
+    <!-- Capture Preview Modal -->
+    <div id="capture-preview">
+        <div class="preview-content">
+            <h3 style="color: var(--grey-700); margin-bottom: 20px;">📸 Image Preview</h3>
+            <div style="text-align: center; margin: 20px 0;">
+                <canvas id="captured-canvas" style="max-width: 100%; border-radius: 8px; border: 2px solid var(--blue);"></canvas>
+            </div>
+            <div style="margin-top: 25px; display: flex; gap: 15px;">
+                <button id="use-image" class="btn btn-primary" style="flex: 1;">
+                    <span style="font-size: 1.2em;">👍</span> Use This Image
+                </button>
+                <button id="retake-image" class="btn btn-secondary" style="flex: 1;">
+                    <span style="font-size: 1.2em;">🔄</span> Retake
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Debug Section -->
+    <div class="debug-section">
+        <h4 style="color: var(--grey-700); margin-bottom: 15px;">🔧 Debug Tools</h4>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <button onclick="debugCheck()" class="btn btn-secondary">
+                <span style="font-size: 1.1em;">🔍</span> Check Elements
+            </button>
+            <button onclick="testCounter()" class="btn btn-secondary">
+                <span style="font-size: 1.1em;">🧪</span> Test Counter
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function debugCheck() {
+    console.log('=== DEBUG CHECK ===');
+    console.log('progress-fill:', document.getElementById('progress-fill'));
+    console.log('progress-text:', document.getElementById('progress-text'));
+    console.log('status-message:', document.getElementById('status-message'));
+    console.log('cameraApp:', window.cameraApp);
+    console.log('camera.js loaded:', !!window.cameraApp);
+    
+    if (!window.cameraApp) {
+        showMessage('camera.js not loaded or has errors! Check browser console.', 'error');
+    } else {
+        showMessage('Camera app loaded. Elements should be found.', 'success');
+    }
+}
+
+function testCounter() {
+    const fill = document.getElementById('progress-fill');
+    const text = document.getElementById('progress-text');
+    const status = document.getElementById('status-message');
+    
+    if (fill && text && status) {
+        fill.style.width = '66%';
+        text.textContent = '2/3';
+        status.innerHTML = '<span style="color: var(--orange);">🧪 Manual test: Face captured (2/3)</span>';
+        showMessage('Manual test successful! Counter should show 2/3', 'success');
+    } else {
+        showMessage('ERROR: Elements missing! Check console for details.', 'error');
+    }
+}
+
+// Update the showMessage function to use our color scheme
+const originalShowMessage = window.showMessage;
+window.showMessage = function(message, type = 'info') {
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    
+    // If it's an info message, use orange
+    if (type === 'info') {
+        colors.info = 'var(--orange)';
+    }
+    
+    return originalShowMessage.call(this, message, type);
+};
+
+// Check on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, checking camera.js...');
+    setTimeout(() => {
+        console.log('Camera app after load:', window.cameraApp);
+    }, 1000);
+});
+</script>
+
+<!-- Your camera.js file -->
+<script src="/static/js/camera.js"></script>
+{% endblock %}

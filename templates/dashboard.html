@@ -1,0 +1,854 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Face Recognition System{% endblock %}
+
+{% block styles %}
+<style>
+    /* Dashboard specific styles */
+    .dashboard-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .dashboard-header h2 {
+        color: var(--dark);
+        margin-bottom: 10px;
+        font-size: 2em;
+    }
+
+    .dashboard-header p {
+        color: var(--gray);
+        font-size: 1.1em;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .stat-item {
+        background: var(--white);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        border-left: 5px solid var(--primary);
+        transition: transform 0.3s ease;
+    }
+
+    .stat-item:hover {
+        transform: translateY(-5px);
+    }
+
+    .stat-item h3 {
+        color: var(--gray);
+        font-size: 1em;
+        font-weight: 600;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-number {
+        color: var(--dark);
+        font-size: 2.5em;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .stat-status {
+        font-size: 1.2em;
+        font-weight: 600;
+        padding: 8px 15px;
+        border-radius: 20px;
+        display: inline-block;
+    }
+
+    .status-running {
+        background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.1));
+        color: #059669;
+        border: 2px solid #10b981;
+    }
+
+    .status-error {
+        background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.1));
+        color: #dc2626;
+        border: 2px solid #ef4444;
+    }
+
+    /* Action Buttons */
+    .dashboard-actions {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin: 30px 0;
+    }
+
+    .action-btn {
+        padding: 14px 28px;
+        border-radius: 10px;
+        font-size: 1.1em;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        border: none;
+    }
+
+    .action-btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: var(--white);
+    }
+
+    .action-btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102,126,234,0.4);
+    }
+
+    .action-btn-secondary {
+        background: var(--light);
+        color: var(--dark);
+        border: 2px solid var(--gray);
+    }
+
+    .action-btn-secondary:hover {
+        background: var(--gray);
+        color: var(--white);
+    }
+
+    .action-btn-danger {
+        background: linear-gradient(135deg, var(--danger), #dc2626);
+        color: var(--white);
+    }
+
+    .action-btn-danger:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(239,68,68,0.4);
+    }
+
+    /* User Management Section */
+    .user-management {
+        background: var(--white);
+        border-radius: 15px;
+        padding: 30px;
+        margin-top: 40px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .user-management h3 {
+        color: var(--dark);
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid var(--primary);
+        font-size: 1.5em;
+    }
+
+    /* User Table */
+    .users-table-container {
+        overflow-x: auto;
+        margin-bottom: 30px;
+    }
+
+    .users-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 800px;
+    }
+
+    .users-table th {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: var(--white);
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 1em;
+    }
+
+    .users-table td {
+        padding: 15px;
+        border-bottom: 1px solid var(--light);
+        color: var(--dark);
+    }
+
+    .users-table tr:hover {
+        background: linear-gradient(135deg, rgba(102,126,234,0.05), rgba(118,75,162,0.05));
+    }
+
+    .user-role {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 600;
+    }
+
+    .role-admin {
+        background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.1));
+        color: var(--info);
+        border: 1px solid var(--info);
+    }
+
+    .role-user {
+        background: linear-gradient(135deg, rgba(16,185,129,0.2), rgba(16,185,129,0.1));
+        color: var(--success);
+        border: 1px solid var(--success);
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        background: var(--white);
+        padding: 30px;
+        border-radius: 15px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--light);
+    }
+
+    .modal-header h3 {
+        color: var(--dark);
+        margin: 0;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--dark);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid var(--light);
+        border-radius: 8px;
+        font-size: 1em;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        margin-top: 30px;
+    }
+
+    /* Loading States */
+    .loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .dashboard-actions {
+            flex-direction: column;
+        }
+        
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            padding: 20px;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <h2>📊 System Dashboard</h2>
+        <p>Manage users, view statistics, and monitor system performance</p>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div id="stats-container" class="stats-grid">
+        <div class="stat-item">
+            <h3>Total Users</h3>
+            <p class="stat-number" id="total-users">0</p>
+        </div>
+        <div class="stat-item">
+            <h3>Face Embeddings</h3>
+            <p class="stat-number" id="total-embeddings">0</p>
+        </div>
+        <div class="stat-item">
+            <h3>Similarity Threshold</h3>
+            <p class="stat-number" id="threshold">0.60</p>
+        </div>
+        <div class="stat-item">
+            <h3>System Status</h3>
+            <span id="system-status" class="stat-status status-running">Running</span>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="dashboard-actions">
+        <a href="{{ url_for('camera_page') }}" class="action-btn action-btn-primary">
+            <span>📷</span> Test Camera
+        </a>
+        <a href="{{ url_for('register_page') }}" class="action-btn action-btn-secondary">
+            <span>👤</span> Register New User
+        </a>
+        <button onclick="refreshDashboard()" class="action-btn action-btn-secondary">
+            <span>🔄</span> Refresh Dashboard
+        </button>
+        <button onclick="openUserModal()" class="action-btn action-btn-primary">
+            <span>➕</span> Add New User
+        </button>
+    </div>
+
+    <!-- User Management Section -->
+    <div class="user-management">
+        <h3>👥 User Management</h3>
+        
+        <!-- Search and Filter -->
+        <div style="display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
+            <input type="text" id="user-search" placeholder="Search users..." class="form-control" style="flex: 1; min-width: 250px;">
+            <select id="role-filter" class="form-control" style="width: 150px;">
+                <option value="">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+            </select>
+            <button onclick="searchUsers()" class="action-btn action-btn-primary">Search</button>
+        </div>
+
+        <!-- Users Table -->
+        <div class="users-table-container">
+            <table class="users-table" id="users-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Created</th>
+                        <th>Face Data</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="users-table-body">
+                    <!-- Users will be loaded here -->
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: var(--gray);">
+                            Loading users...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
+            <!-- Pagination will be loaded here -->
+        </div>
+    </div>
+
+    <!-- System Controls -->
+    <div style="margin-top: 40px; padding: 25px; background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0.05)); border-radius: 12px; border-left: 4px solid var(--warning);">
+        <h3 style="color: var(--dark); margin-bottom: 20px;">⚙️ System Controls</h3>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <button onclick="clearFaceCache()" class="action-btn action-btn-secondary">
+                <span>🧹</span> Clear Face Cache
+            </button>
+            <button onclick="rebuildIndex()" class="action-btn action-btn-secondary">
+                <span>🔧</span> Rebuild Face Index
+            </button>
+            <button onclick="exportData()" class="action-btn action-btn-primary">
+                <span>📤</span> Export Data
+            </button>
+            <button onclick="importData()" class="action-btn action-btn-primary">
+                <span>📥</span> Import Data
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- User Modal (for Create/Update) -->
+<div id="user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Add New User</h3>
+            <span onclick="closeUserModal()" style="float: right; cursor: pointer; font-size: 1.5em; color: var(--gray);">&times;</span>
+        </div>
+        <form id="user-form">
+            <input type="hidden" id="user-id">
+            
+            <div class="form-group">
+                <label for="username">Username *</label>
+                <input type="text" id="username" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email *</label>
+                <input type="email" id="email" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" class="form-control" required>
+                <small style="color: var(--gray); font-size: 0.9em;">Leave blank to keep existing password</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="role">Role *</label>
+                <select id="role" class="form-control" required>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="face-data">Face Data</label>
+                <textarea id="face-data" class="form-control" rows="3" placeholder="Face embeddings (base64)"></textarea>
+                <small style="color: var(--gray); font-size: 0.9em;">Use camera to capture face data</small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" onclick="closeUserModal()" class="action-btn action-btn-secondary">Cancel</button>
+                <button type="submit" id="submit-btn" class="action-btn action-btn-primary">Save User</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Confirm Delete</h3>
+            <span onclick="closeDeleteModal()" style="float: right; cursor: pointer; font-size: 1.5em; color: var(--gray);">&times;</span>
+        </div>
+        <div style="padding: 20px 0;">
+            <p id="delete-message" style="color: var(--dark); font-size: 1.1em; line-height: 1.6;"></p>
+        </div>
+        <div class="form-actions">
+            <button type="button" onclick="closeDeleteModal()" class="action-btn action-btn-secondary">Cancel</button>
+            <button type="button" onclick="confirmDelete()" class="action-btn action-btn-danger">Delete</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Global variables
+let currentUserToDelete = null;
+let currentPage = 1;
+const usersPerPage = 10;
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    loadStats();
+    loadUsers();
+    
+    // Set up user form submission
+    document.getElementById('user-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        saveUser();
+    });
+    
+    // Show welcome message
+    setTimeout(() => {
+        showMessage('Dashboard loaded. You can now manage users and system settings.', 'info');
+    }, 500);
+});
+
+// Load statistics
+async function loadStats() {
+    try {
+        const response = await fetch('/api/stats');
+        const data = await response.json();
+        
+        document.getElementById('total-users').textContent = data.total_users || 0;
+        document.getElementById('total-embeddings').textContent = data.total_embeddings || 0;
+        document.getElementById('threshold').textContent = data.threshold || '0.60';
+        
+        const statusElement = document.getElementById('system-status');
+        if (data.status === 'running') {
+            statusElement.className = 'stat-status status-running';
+            statusElement.textContent = 'Running';
+        } else {
+            statusElement.className = 'stat-status status-error';
+            statusElement.textContent = data.status || 'Error';
+        }
+    } catch (error) {
+        console.error('Error loading stats:', error);
+        showMessage('Failed to load statistics', 'error');
+    }
+}
+
+// Load users with pagination
+async function loadUsers(page = 1) {
+    try {
+        currentPage = page;
+        const searchQuery = document.getElementById('user-search').value;
+        const roleFilter = document.getElementById('role-filter').value;
+        
+        let url = `/api/users?page=${page}&limit=${usersPerPage}`;
+        if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+        if (roleFilter) url += `&role=${encodeURIComponent(roleFilter)}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        renderUsersTable(data.users || []);
+        renderPagination(data.total || 0, data.pages || 1);
+    } catch (error) {
+        console.error('Error loading users:', error);
+        document.getElementById('users-table-body').innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: var(--danger);">
+                    Error loading users. Please try again.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Render users table
+function renderUsersTable(users) {
+    const tbody = document.getElementById('users-table-body');
+    
+    if (users.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: var(--gray);">
+                    No users found. Click "Add New User" to create one.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    let html = '';
+    users.forEach(user => {
+        const createdDate = new Date(user.created_at || Date.now()).toLocaleDateString();
+        const faceDataCount = user.face_data ? (Array.isArray(user.face_data) ? user.face_data.length : 1) : 0;
+        
+        html += `
+            <tr>
+                <td>${user.id || 'N/A'}</td>
+                <td><strong>${user.username || 'Unknown'}</strong></td>
+                <td>${user.email || 'N/A'}</td>
+                <td>
+                    <span class="user-role ${user.role === 'admin' ? 'role-admin' : 'role-user'}">
+                        ${user.role || 'user'}
+                    </span>
+                </td>
+                <td>${createdDate}</td>
+                <td>${faceDataCount} images</td>
+                <td>
+                    <button onclick="editUser(${JSON.stringify(user).replace(/"/g, '&quot;')})" 
+                            class="action-btn action-btn-secondary" style="padding: 8px 15px; font-size: 0.9em;">
+                        ✏️ Edit
+                    </button>
+                    <button onclick="deleteUserPrompt(${user.id}, '${user.username}')" 
+                            class="action-btn action-btn-danger" style="padding: 8px 15px; font-size: 0.9em;">
+                        🗑️ Delete
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+}
+
+// Render pagination
+function renderPagination(totalUsers, totalPages) {
+    const pagination = document.getElementById('pagination');
+    
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    
+    // Previous button
+    if (currentPage > 1) {
+        html += `<button onclick="loadUsers(${currentPage - 1})" class="action-btn action-btn-secondary">← Previous</button>`;
+    }
+    
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage) {
+            html += `<button class="action-btn action-btn-primary" disabled>${i}</button>`;
+        } else if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+            html += `<button onclick="loadUsers(${i})" class="action-btn action-btn-secondary">${i}</button>`;
+        } else if (i === currentPage - 2 || i === currentPage + 2) {
+            html += `<span style="padding: 12px; color: var(--gray);">...</span>`;
+        }
+    }
+    
+    // Next button
+    if (currentPage < totalPages) {
+        html += `<button onclick="loadUsers(${currentPage + 1})" class="action-btn action-btn-secondary">Next →</button>`;
+    }
+    
+    pagination.innerHTML = html;
+}
+
+// Open user modal for creating/editing
+function openUserModal(user = null) {
+    const modal = document.getElementById('user-modal');
+    const title = document.getElementById('modal-title');
+    const form = document.getElementById('user-form');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    if (user) {
+        // Edit mode
+        title.textContent = 'Edit User';
+        submitBtn.textContent = 'Update User';
+        document.getElementById('user-id').value = user.id;
+        document.getElementById('username').value = user.username || '';
+        document.getElementById('email').value = user.email || '';
+        document.getElementById('password').required = false;
+        document.getElementById('role').value = user.role || 'user';
+        document.getElementById('face-data').value = user.face_data ? JSON.stringify(user.face_data) : '';
+    } else {
+        // Create mode
+        title.textContent = 'Add New User';
+        submitBtn.textContent = 'Create User';
+        form.reset();
+        document.getElementById('user-id').value = '';
+        document.getElementById('password').required = true;
+    }
+    
+    modal.style.display = 'flex';
+}
+
+// Close user modal
+function closeUserModal() {
+    document.getElementById('user-modal').style.display = 'none';
+    document.getElementById('user-form').reset();
+}
+
+// Save user (create or update)
+async function saveUser() {
+    const userId = document.getElementById('user-id').value;
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const role = document.getElementById('role').value;
+    const faceData = document.getElementById('face-data').value;
+    
+    const userData = {
+        username,
+        email,
+        role
+    };
+    
+    if (password) userData.password = password;
+    if (faceData) {
+        try {
+            userData.face_data = JSON.parse(faceData);
+        } catch (e) {
+            showMessage('Invalid face data format. Must be valid JSON.', 'error');
+            return;
+        }
+    }
+    
+    try {
+        showLoading('Saving user...');
+        
+        const url = userId ? `/api/users/${userId}` : '/api/users';
+        const method = userId ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(userData)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showMessage(result.message || 'User saved successfully!', 'success');
+            closeUserModal();
+            loadUsers(currentPage);
+            loadStats();
+        } else {
+            showMessage(result.error || 'Failed to save user', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving user:', error);
+        showMessage('Error saving user. Please try again.', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Edit user
+function editUser(user) {
+    openUserModal(user);
+}
+
+// Prompt for user deletion
+function deleteUserPrompt(userId, username) {
+    currentUserToDelete = userId;
+    document.getElementById('delete-message').textContent = 
+        `Are you sure you want to delete user "${username}"? This action cannot be undone.`;
+    document.getElementById('delete-modal').style.display = 'flex';
+}
+
+// Close delete modal
+function closeDeleteModal() {
+    document.getElementById('delete-modal').style.display = 'none';
+    currentUserToDelete = null;
+}
+
+// Confirm and delete user
+async function confirmDelete() {
+    if (!currentUserToDelete) return;
+    
+    try {
+        showLoading('Deleting user...');
+        
+        const response = await fetch(`/api/users/${currentUserToDelete}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showMessage(result.message || 'User deleted successfully!', 'success');
+            closeDeleteModal();
+            loadUsers(currentPage);
+            loadStats();
+        } else {
+            showMessage(result.error || 'Failed to delete user', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        showMessage('Error deleting user. Please try again.', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+// Search users
+function searchUsers() {
+    loadUsers(1);
+}
+
+// Refresh dashboard
+function refreshDashboard() {
+    loadStats();
+    loadUsers(currentPage);
+    showMessage('Dashboard refreshed', 'info');
+}
+
+// System control functions
+async function clearFaceCache() {
+    if (!confirm('Are you sure you want to clear all face cache? This will remove temporary face data.')) {
+        return;
+    }
+    
+    try {
+        showLoading('Clearing face cache...');
+        const response = await fetch('/api/system/clear-cache', { method: 'POST' });
+        const result = await response.json();
+        showMessage(result.message || 'Face cache cleared', 'success');
+    } catch (error) {
+        showMessage('Error clearing cache', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+async function rebuildIndex() {
+    if (!confirm('Are you sure you want to rebuild the face index? This may take some time.')) {
+        return;
+    }
+    
+    try {
+        showLoading('Rebuilding face index...');
+        const response = await fetch('/api/system/rebuild-index', { method: 'POST' });
+        const result = await response.json();
+        showMessage(result.message || 'Face index rebuilt successfully', 'success');
+    } catch (error) {
+        showMessage('Error rebuilding index', 'error');
+    } finally {
+        hideLoading();
+    }
+}
+
+function exportData() {
+    showMessage('Export feature coming soon!', 'info');
+}
+
+function importData() {
+    showMessage('Import feature coming soon!', 'info');
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const userModal = document.getElementById('user-modal');
+    const deleteModal = document.getElementById('delete-modal');
+    
+    if (event.target === userModal) {
+        closeUserModal();
+    }
+    if (event.target === deleteModal) {
+        closeDeleteModal();
+    }
+}
+</script>
+{% endblock %}
