@@ -1,0 +1,22 @@
+# .koyebignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.git/
+.gitignore
+tests/
+*.log
+*.db
+instance/
+.DS_Store
+.idea/
+.vscode/
+node_modules/
+static/uploads/*.jpg
+static/uploads/*.png
+static/uploads/*.jpeg
