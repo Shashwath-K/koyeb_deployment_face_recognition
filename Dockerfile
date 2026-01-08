@@ -1,35 +1,16 @@
-# Multi-stage build for PyTorch + Flask application
-# Stage 1: Builder (install dependencies)
-FROM python:3.10-slim as builder
-
-WORKDIR /app
-
-# Install system build dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    python3-dev \
-    git \
-    curl \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements file
-COPY requirements.txt .
-
-# Install Python dependencies with PyTorch from CPU-only index
-# Using --user flag to install in user directory for easier copying
-RUN pip install --no-cache-dir --user \
-    --index-url https://download.pytorch.org/whl/cpu \
-    -r requirements.txt
-
-# Stage 2: Runtime
+# Use Python 3.10 explicitly (3.13 has compatibility issues)
 FROM python:3.10-slim
 
+LABEL maintainer="Face Attendance API"
+LABEL version="1.0"
+
 WORKDIR /app
 
-# Install runtime system dependencies
+# Install system dependencies in one RUN layer to reduce image size
 RUN apt-get update && apt-get install -y \
+    # Python build dependencies
+    build-essential \
+    python3-dev \
     # OpenCV dependencies
     libgl1-mesa-glx \
     libglib2.0-0 \
@@ -37,57 +18,57 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgomp1 \
-    # PostgreSQL client libraries (for psycopg2)
+    # PostgreSQL client
     libpq-dev \
-    # Clean up
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    wget \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
-# Copy installed packages from builder stage
-COPY --from=builder /root/.local /root/.local
+# Copy requirements first (better caching)
+COPY requirements.txt .
 
-# Add user packages to PATH and PYTHONPATH
-ENV PATH=/root/.local/bin:$PATH
-ENV PYTHONPATH=/root/.local/lib/python3.10/site-packages:$PYTHONPATH
+# Upgrade pip and setuptools first
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install Python dependencies with specific PyTorch CPU version
+RUN pip install --no-cache-dir \
+    -r requirements.txt \
+    --extra-index-url https://download.pytorch.org/whl/cpu
+
+# Verify installations
+RUN python -c "import torch; print(f'PyTorch {torch.__version__} installed'); \
+    print(f'CUDA available: {torch.cuda.is_available()}')" && \
+    python -c "import cv2; print(f'OpenCV {cv2.__version__} installed')" && \
+    python -c "import flask; print(f'Flask {flask.__version__} installed')"
 
 # Copy application code
 COPY . .
 
-# Clean up Python bytecode and cache files
-RUN find /root/.local -name "*.pyc" -delete && \
-    find /root/.local -type d -name "__pycache__" -delete
-
-# Verify PyTorch installation (CPU-only)
-RUN python -c "import torch; print(f'PyTorch version: {torch.__version__}'); \
-    print(f'CUDA available: {torch.cuda.is_available()}'); \
-    print(f'PyTorch built with CUDA: {torch.version.cuda if hasattr(torch.version, \"cuda\") else \"None\"}')"
-
-# Create non-root user for security
+# Create a non-root user and switch to it
 RUN useradd -m -u 1000 appuser && \
-    chown -R appuser:appuser /app && \
-    chown -R appuser:appuser /root/.local
+    chown -R appuser:appuser /app
 USER appuser
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PORT=8000
+ENV PORT=5000
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV TF_CPP_MIN_LOG_LEVEL=3
+ENV FLASK_APP=app.py
 
 # Expose port
-EXPOSE 8000
+EXPOSE 5000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD python -c "import requests; r = requests.get('http://localhost:8000/api/health', timeout=5); exit(0) if r.status_code == 200 else exit(1)"
+    CMD python -c "import requests; r = requests.get('http://localhost:5000/health', timeout=2); exit(0) if r.status_code == 200 else exit(1)" || exit 1
 
-# Run with gunicorn (optimized for CPU/memory)
+# Run with gunicorn (optimized for memory)
 CMD ["gunicorn", \
-    "--bind", "0.0.0.0:8000", \
+    "--bind", "0.0.0.0:5000", \
     "--workers", "2", \
     "--threads", "2", \
     "--timeout", "300", \
-    "--worker-class", "sync", \
     "--access-logfile", "-", \
     "--error-logfile", "-", \
     "app:app"]
